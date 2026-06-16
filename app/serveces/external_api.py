@@ -20,6 +20,7 @@ async def gemini_response(prompt: str)->dict:
                 model=_model,
                 contents=f"""
             Определи основную тему книжного запроса пользователя.
+            Внимание поиск ввдется в openLibrle так что надо четко ставить жанр или тему 
             
             Запрос:
             {prompt}

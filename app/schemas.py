@@ -8,11 +8,12 @@ class BookPrompt(BaseModel):
                         description='Промт для нашей нейросети')
 
 
-class Book(BookPrompt):
+class Book(BaseModel):
     name_book: str = Field(max_length=150, description='Имя книги')
-    genre: str | None = Field(description='Жанр книги')
-    image: str = Field(description='ссылка на картинку книги')
+    author: str | None = Field(description='Автор книги')
+    image: str | None= Field(description='ссылка на картинку книги')
 
 class RecommendResponse(BaseModel):
     prompt: str
+    topic : str
     books: list[Book]

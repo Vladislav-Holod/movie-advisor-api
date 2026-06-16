@@ -2,3 +2,5 @@
 __pycache__/
 .env
 venv
+ app/migrations/versions/
+ app/serveces/testing_service.py

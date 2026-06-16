@@ -1,4 +1,4 @@
-from fastapi import APIRouter
+from fastapi import APIRouter, HTTPException, status
 
 from app.schemas import (BookPrompt,
                          RecommendResponse)
@@ -10,6 +10,9 @@ router = APIRouter(
 )
 
 
-@router.post('/recommend', response_model= RecommendResponse)
+@router.post('/recommend', response_model=RecommendResponse)
 async def get_book_recommend(prompt: BookPrompt):
-    return await recommend_book(prompt.prompt)
+    try:
+        return await recommend_book(prompt.prompt)
+    except Exception as e:
+        raise HTTPException(status_code=status.HTTP_503_SERVICE_UNAVAILABLE, detail=e)
