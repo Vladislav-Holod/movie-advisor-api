@@ -13,7 +13,6 @@ class Book(BookPrompt):
     genre: str | None = Field(description='Жанр книги')
     image: str = Field(description='ссылка на картинку книги')
 
-
 class RecommendResponse(BaseModel):
     prompt: str
     books: list[Book]
