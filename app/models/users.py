@@ -11,8 +11,8 @@ class UserModel(Base):
     hashed_password: Mapped[str] = mapped_column(String, nullable=False)
     is_active: Mapped[bool] = mapped_column(Boolean, default=True)
 
-    profile: Mapped["UserProfile"] = relationship(
-        "UserProfile",
+    profile: Mapped["UserProfileModel"] = relationship(
+        "UserProfileModel",
         back_populates="user",
         uselist=False
     )

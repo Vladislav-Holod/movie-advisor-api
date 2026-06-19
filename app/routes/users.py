@@ -6,7 +6,7 @@ from fastapi.security import OAuth2PasswordRequestForm
 
 from app.schemas.schemas import UserCreate, User, RefreshTokenRequest
 from db_depends import get_async_db
-from app.models import UserModel
+from app.models import UserModel, UserProfileModel
 from auth import (hash_password,
                   verify_password,
                   create_access_token,
@@ -18,12 +18,13 @@ router = APIRouter(
     tags=['users']
 )
 
-#ADD ROTATION REFRESH TOKEEEEN
-#Нужно обьединить /refresh tokens в один эндпонит
-# настроить хранение в бд и проверять токены какие надо обновлять какие нет
-#-----------------------------
 
-@router.post('/', response_model=User, status_code=status.HTTP_201_CREATED)
+# ADD ROTATION REFRESH TOKEEEEN
+# Нужно обьединить /refresh tokens в один эндпонит
+# настроить хранение в бд и проверять токены какие надо обновлять какие нет
+# -----------------------------
+
+@router.post('/', response_model = User, status_code = status.HTTP_201_CREATED)
 async def create_user(user: UserCreate,
                       db: AsyncSession = Depends(get_async_db)):
     """
@@ -35,11 +36,17 @@ async def create_user(user: UserCreate,
                             detail='Email already registered')
 
     db_user = UserModel(
-        email=user.email,
-        hashed_password=hash_password(user.password)
+        email = user.email,
+        hashed_password = hash_password(user.password)
     )
     db.add(db_user)
+    await db.flush()
+    db_profile = UserProfileModel(
+        user_id = db_user.id
+    )
+    db.add(db_profile)
     await db.commit()
+
     return db_user
 
 
@@ -127,7 +134,7 @@ async def get_new_access_token(
         email: str | None = payload.get('sub')
         token_type: str | None = payload.get('token_type')
 
-        if email is None or token_type!='refresh':
+        if email is None or token_type != 'refresh':
             raise credentials_exception
 
     except jwt.ExpiredSignatureError:
@@ -147,5 +154,5 @@ async def get_new_access_token(
         )
     access_token = create_access_token(data={'sub': email, 'id': user.id})
     return {
-        "access-token":access_token,'token_type':'bearer'
+        "access-token": access_token, 'token_type': 'bearer'
     }

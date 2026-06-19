@@ -16,3 +16,6 @@ async def get_book_recommend(prompt: BookPrompt):
         return await recommend_book(prompt.prompt)
     except Exception as e:
         raise HTTPException(status_code=status.HTTP_503_SERVICE_UNAVAILABLE, detail=e)
+
+
+
