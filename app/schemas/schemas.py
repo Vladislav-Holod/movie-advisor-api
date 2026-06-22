@@ -10,9 +10,12 @@ class BookPrompt(BaseModel):
 
 
 class Book(BaseModel):
-    name_book: str = Field(max_length=150, description='Имя книги')
+    title: str = Field(max_length=150, description='Имя книги')
     author: str | None = Field(description='Автор книги')
-    image: str | None = Field(description='ссылка на картинку книги')
+    image_url: str | None = Field(description='ссылка на картинку книги')
+    description: str | None = Field(description='Описание книги')
+    genres: str | None = Field(description='Жанр книги')
+    model_config = ConfigDict(from_attributes=True)
 
 
 class RecommendResponse(BaseModel):
@@ -54,4 +57,3 @@ class UserUpdateProfile(BaseModel):
     name: str = Field(max_length=80)
     favorite_genres: str | None = Field(max_length=200, description='Любимые жанры')
     about_me: str | None = Field(max_length=300, description='Дополнительная информация о пользователе')
-
