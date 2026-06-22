@@ -1,7 +1,7 @@
 from sqlalchemy import Integer, String
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 from database import Base
-from app.models.association_tables import user_favorite_books
+from app.models.association_tables import user_favorite_books,user_profile_liked_books
 
 class BookModel(Base):
     __tablename__ = "books"
@@ -21,4 +21,9 @@ class BookModel(Base):
         "UserModel",
         secondary=user_favorite_books,
         back_populates="favorite_books"
+    )
+    liked_by_profiles:Mapped[list['UserProfileModel']] = relationship(
+        'UserProfileModel',
+        secondary=user_profile_liked_books,
+        back_populates='liked_books'
     )

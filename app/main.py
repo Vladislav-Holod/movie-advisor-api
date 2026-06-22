@@ -1,7 +1,7 @@
 from fastapi import FastAPI
 from app.routes import (book,
-                        users,
-                        profile)
+                        user_profile,
+                        users)
 
 app = FastAPI(
     title='Book search service',
@@ -9,7 +9,7 @@ app = FastAPI(
 )
 app.include_router(book.router)
 app.include_router(users.router)
-app.include_router(profile.router)
+app.include_router(user_profile.router)
 
 @app.get('/')
 async def root():

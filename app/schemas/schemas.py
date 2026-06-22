@@ -54,3 +54,4 @@ class UserUpdateProfile(BaseModel):
     name: str = Field(max_length=80)
     favorite_genres: str | None = Field(max_length=200, description='Любимые жанры')
     about_me: str | None = Field(max_length=300, description='Дополнительная информация о пользователе')
+

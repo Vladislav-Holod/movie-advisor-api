@@ -1,13 +1,11 @@
-import jwt
 from fastapi import APIRouter, Depends, HTTPException, status
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy import select,update
-from fastapi.security import OAuth2PasswordRequestForm
+
 from app.schemas.schemas import UserProfile, UserUpdateProfile
 from db_depends import get_async_db
 from app.models import UserModel,UserProfileModel
 from auth import (get_current_user)
-from config import SECRET_KEY, ALGORITHM
 
 router = APIRouter(
     prefix='/profile',
