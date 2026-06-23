@@ -29,13 +29,14 @@ async def open_library_search(prompt: str, topic: str):
     return result
 
 
-async def recommend_book(prompt: str) -> dict[str, list]:
+async def recommend_movie(prompt: str) -> dict[str, list]:
     """
     Функция для запроса в gemeni для определния тематики далее ищет через
-    OpenLibrary книги и отдает словарь по pydantic модели
+    Poiskino книги и отдает словарь по pydantic модели
     """
-    topic_data = await gemini_response(prompt)
-    topic = topic_data["topic"]
-    result = await open_library_search(prompt, topic)
-    result['topic'] = topic
-    return result
+    # topic_data = await gemini_response(prompt)
+    # topic = topic_data["topic"]
+    # result = await open_library_search(prompt, topic)
+    # result['topic'] = topic
+    # return result
+    pass

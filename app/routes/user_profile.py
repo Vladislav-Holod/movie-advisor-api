@@ -9,7 +9,7 @@ from auth import (get_current_user)
 
 router = APIRouter(
     prefix='/profile',
-    tags=['users']
+    tags=['user_profile']
 )
 
 

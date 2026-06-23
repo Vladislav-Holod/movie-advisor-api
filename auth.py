@@ -17,7 +17,7 @@ pwd_context = CryptContext(schemes=['argon2']
 ACCESS_TOKEN_EXPIRE_MINUTES = 30
 REFRESH_TOKEN_EXPIRE_DAYS = 7
 
-oauth_scheme = OAuth2PasswordBearer(tokenUrl='/users/token')
+oauth_scheme = OAuth2PasswordBearer(tokenUrl='/user/token')
 
 
 def hash_password(password: str) -> str:

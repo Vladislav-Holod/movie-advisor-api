@@ -1,27 +1,35 @@
 from pydantic import BaseModel, Field, EmailStr, ConfigDict
 from datetime import datetime
+from typing import List
 
-
-class BookPrompt(BaseModel):
+class MoviePrompt(BaseModel):
     prompt: str = Field(...,
                         min_length=10,
                         max_length=300,
                         description='Промт для нашей нейросети')
 
 
-class Book(BaseModel):
-    title: str = Field(max_length=150, description='Имя книги')
-    author: str | None = Field(description='Автор книги')
-    image_url: str | None = Field(description='ссылка на картинку книги')
-    description: str | None = Field(description='Описание книги')
-    genres: str | None = Field(description='Жанр книги')
+class Movie(BaseModel):
+    id: int
+    id_pois: int | None = None
+    name_movie: str = Field(default="Без имени", description="Название фильма")
+    year: int | None = Field(default=None, description="Год выпуска")
+    genres: List[str] = Field(default_factory=list, description="Жанры фильма")
+    description: str = Field(default="empty", description="Описание фильма")
+    poster_image: str = Field(
+        default="https://avatars.mds.yandex.net/get-kinopoisk-image/1946459/daf5de47-6c50-4d78-a4e1-f2d7028af7c8/300x450",
+        description="Ссылка на постер фильма"
+    )
+    movieLength: int | None = Field(default=None, description="Длительность фильма в минутах")
+    rating: float = Field(default=0.0, description="Рейтинг фильма")
+
     model_config = ConfigDict(from_attributes=True)
 
 
 class RecommendResponse(BaseModel):
     prompt: str
-    topic: str
-    books: list[Book]
+    title: str
+    movies: list[Movie]
 
 
 class UserCreate(BaseModel):

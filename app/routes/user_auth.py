@@ -14,8 +14,8 @@ from auth import (hash_password,
 from config import SECRET_KEY, ALGORITHM
 
 router = APIRouter(
-    prefix='/users',
-    tags=['users']
+    prefix='/user',
+    tags=['user_auth']
 )
 
 
