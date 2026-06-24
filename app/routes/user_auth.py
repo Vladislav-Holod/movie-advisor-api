@@ -11,7 +11,7 @@ from auth import (hash_password,
                   verify_password,
                   create_access_token,
                   create_refresh_token)
-from config import SECRET_KEY, ALGORITHM
+from auth import SECRET_KEY, ALGORITHM
 
 router = APIRouter(
     prefix='/user',
@@ -24,7 +24,7 @@ router = APIRouter(
 # настроить хранение в бд и проверять токены какие надо обновлять какие нет
 # -----------------------------
 
-@router.post('/', response_model = User, status_code = status.HTTP_201_CREATED)
+@router.post('/', response_model=User, status_code=status.HTTP_201_CREATED)
 async def create_user(user: UserCreate,
                       db: AsyncSession = Depends(get_async_db)):
     """
@@ -36,13 +36,13 @@ async def create_user(user: UserCreate,
                             detail='Email already registered')
 
     db_user = UserModel(
-        email = user.email,
-        hashed_password = hash_password(user.password)
+        email=user.email,
+        hashed_password=hash_password(user.password)
     )
     db.add(db_user)
     await db.flush()
     db_profile = UserProfileModel(
-        user_id = db_user.id
+        user_id=db_user.id
     )
     db.add(db_profile)
     await db.commit()
