@@ -9,8 +9,8 @@ router = APIRouter(
 )
 
 
-@router.post('/', response_model=List[Movie])
+@router.post('/', response_model=list)
 async def recommend_movie(prompt: str):
     result_topic = await ai_client.ai_response(prompt)
-    result_recommend = await api_kinopoisk.search(result_topic)
-    return result_recommend
+    # result_recommend = await api_kinopoisk.search(result_topic)
+    return result_topic
