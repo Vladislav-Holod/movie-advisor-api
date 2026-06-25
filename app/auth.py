@@ -70,6 +70,8 @@ async def get_current_user(token: str = Depends(oauth_scheme),
         detail="Could not validate credentials",
         headers={"WWW-Authenticate": "Bearer"},
     )
+    user_not_found = HTTPException(status_code=status.HTTP_401_UNAUTHORIZED,
+                                   detail='User not found')
     try:
         payload = jwt.decode(token, SECRET_KEY, algorithms=[ALGORITHM])
         email: str | None = payload.get('sub')
@@ -89,5 +91,5 @@ async def get_current_user(token: str = Depends(oauth_scheme),
                                 UserModel.is_active == True))
     user = result.first()
     if user is None:
-        raise credentials_exception
+        raise user_not_found
     return user
