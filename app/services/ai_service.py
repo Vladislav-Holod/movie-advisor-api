@@ -8,7 +8,7 @@ from fastapi import HTTPException, status
 
 class AIService:
     def __init__(self, provider: LLMProvider):
-        self.provider = provider
+        self.__provider = provider
 
     async def ai_response_search_filters(self, text: str) -> list:
         prompt = f"""
@@ -47,7 +47,7 @@ class AIService:
 
         Запрос пользователя: {text}
         """
-        result = await self.provider.generate(prompt)
+        result = await self.__provider.generate(prompt)
         try:
             data = json.loads(result)
             return data['filter_sets']
@@ -101,7 +101,7 @@ class AIService:
         - если ни один фильм не подходит под запрос — верни пустой список
         - не выбирай фильмы только по высокому рейтингу если они не соответствуют запросу
         """
-        result = await self.provider.generate(prompt)
+        result = await self.__provider.generate(prompt)
         try:
             data = json.loads(result)
             selected_ids = {m['id']: m['reason'] for m in data['movies']}
