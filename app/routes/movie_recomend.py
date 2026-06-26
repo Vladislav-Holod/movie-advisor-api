@@ -8,19 +8,19 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from app.models import MovieModel
 from sqlalchemy import select
 from app.auth import (get_current_user)
-
+from app.schemas.schemas import MoviePrompt
 router = APIRouter(
-    prefix='/movie/recommend',
+    prefix='/movie',
     tags=['AI']
 )
 
 
-@router.post('/', response_model=list[Movie])
-async def recommend_movie(prompt: str,
+@router.post('/recommend', response_model=list[Movie])
+async def recommend_movie(prompt: MoviePrompt,
                           db: AsyncSession = Depends(get_async_db),
                           current_user=Depends(get_current_user)):
 
-    filter_sets = await ai_client.ai_response_search_filters(prompt)
+    filter_sets = await ai_client.ai_response_search_filters(prompt.prompt)
     tasks = [api_kinopoisk.search_by_filters(f, limit=15) for f in filter_sets]
     results = await asyncio.gather(*tasks, return_exceptions=True)
 
@@ -33,7 +33,7 @@ async def recommend_movie(prompt: str,
             if movie.id_pois not in seen:
                 seen.add(movie.id_pois)
                 all_movies.append(movie)
-    result_movie_for_client = await ai_client.ai_search_best_movie(all_movies, prompt)
+    result_movie_for_client = await ai_client.ai_search_best_movie(all_movies, prompt.prompt)
 
     movie_ids = [movie.id_pois for movie in result_movie_for_client]
 

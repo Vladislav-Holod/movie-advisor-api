@@ -9,7 +9,7 @@ from app.routes import (movie_routers,
 
 app = FastAPI(
     title='Cinema search service',
-    version="0.1.1"
+    version="0.1.1",redirect_slashes=False
 )
 
 logger.add("info.log", format="Log: [{extra[log_id]}:{time} - {level} - {message}]", level="INFO", enqueue=True)

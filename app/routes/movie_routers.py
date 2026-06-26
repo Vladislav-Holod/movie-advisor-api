@@ -12,7 +12,7 @@ router = APIRouter(
     tags=['movies']
 )
 
-@router.get('/', response_model=list[Movie])
+@router.get('', response_model=list[Movie])
 async def get_movie(db: AsyncSession = Depends(get_async_db)):
     movie_list = (await db.scalars(select(MovieModel))).all()
     return movie_list

@@ -3,37 +3,30 @@ import { ref, computed } from "vue";
 import { api } from "../api/axios";
 import type {
   Movie,
-  RecommendResponse,
   UserProfile,
   UserUpdateProfile,
 } from "../types";
 
 export const useMovieStore = defineStore("movie", () => {
-  const movies = ref<Movie[]>([]); // ✅ Реальные фильмы из БД
+  const movies = ref<Movie[]>([]);
   const likedMovies = ref<Movie[]>([]);
-  const recommendations = ref<RecommendResponse | null>(null);
+  const recommendations = ref<Movie[] | null>(null);
+  const lastPrompt = ref("");
   const isLoading = ref(false);
-  const isFetchingMovies = ref(false); // ✅ Отдельный флаг загрузки фильмов
+  const isFetchingMovies = ref(false);
   const error = ref("");
 
-  // ✅ Каталог теперь показывает фильмы из БД
-  const catalogMovies = computed(() => {
-    return movies.value;
-  });
+  const catalogMovies = computed(() => movies.value);
 
-  // ✅ Загрузка фильмов из базы данных
   const fetchMovies = async () => {
     isFetchingMovies.value = true;
     error.value = "";
-
     try {
       const res = await api.get<Movie[]>("/movie");
       movies.value = res.data;
     } catch (err: unknown) {
       const detail =
-        (err as { response?: { data?: { detail?: string } } }).response?.data
-          ?.detail;
-
+        (err as { response?: { data?: { detail?: string } } }).response?.data?.detail;
       error.value = detail || "Ошибка при загрузке фильмов";
       movies.value = [];
     } finally {
@@ -44,19 +37,16 @@ export const useMovieStore = defineStore("movie", () => {
   const getRecommendations = async (prompt: string) => {
     isLoading.value = true;
     error.value = "";
-
+    lastPrompt.value = prompt;
     try {
-      const res = await api.post<RecommendResponse>("/movie/recommend", {
-        prompt,
-      });
-
+      const res = await api.post<Movie[]>("/movie/recommend", { prompt });
+      console.log("✅ Ответ от сервера:", res.data);
       recommendations.value = res.data;
       return res.data;
     } catch (err: unknown) {
+      console.error("❌ Ошибка:", err);
       const detail =
-        (err as { response?: { data?: { detail?: string } } }).response?.data
-          ?.detail;
-
+        (err as { response?: { data?: { detail?: string } } }).response?.data?.detail;
       error.value = detail || "Сервис рекомендаций временно недоступен";
       throw err;
     } finally {
@@ -70,9 +60,7 @@ export const useMovieStore = defineStore("movie", () => {
       await getLikedMovies();
     } catch (err: unknown) {
       const detail =
-        (err as { response?: { data?: { detail?: string } } }).response?.data
-          ?.detail;
-
+        (err as { response?: { data?: { detail?: string } } }).response?.data?.detail;
       error.value = detail || "Ошибка при добавлении в избранное";
       throw err;
     }
@@ -81,15 +69,10 @@ export const useMovieStore = defineStore("movie", () => {
   const unlikeMovie = async (movieId: number) => {
     try {
       await api.delete(`/actions/like/${movieId}`);
-
-      likedMovies.value = likedMovies.value.filter(
-        (movie) => movie.id !== movieId
-      );
+      likedMovies.value = likedMovies.value.filter((movie) => movie.id !== movieId);
     } catch (err: unknown) {
       const detail =
-        (err as { response?: { data?: { detail?: string } } }).response?.data
-          ?.detail;
-
+        (err as { response?: { data?: { detail?: string } } }).response?.data?.detail;
       error.value = detail || "Ошибка при удалении из избранного";
       throw err;
     }
@@ -105,8 +88,7 @@ export const useMovieStore = defineStore("movie", () => {
   };
 
   const isLiked = computed(() => {
-    return (movieId: number) =>
-      likedMovies.value.some((m) => m.id === movieId);
+    return (movieId: number) => likedMovies.value.some((m) => m.id === movieId);
   });
 
   const clearRecommendations = () => {
@@ -118,11 +100,12 @@ export const useMovieStore = defineStore("movie", () => {
     movies,
     likedMovies,
     recommendations,
+    lastPrompt,
     isLoading,
-    isFetchingMovies, // ✅ Экспортируем новый флаг
+    isFetchingMovies,
     error,
     catalogMovies,
-    fetchMovies, // ✅ Экспортируем метод загрузки
+    fetchMovies,
     getRecommendations,
     likeMovie,
     unlikeMovie,
@@ -142,7 +125,6 @@ export const useProfileStore = defineStore("profile", () => {
   const getProfile = async () => {
     isLoading.value = true;
     error.value = "";
-
     try {
       const res = await api.get<UserProfile>("/profile/me");
       profile.value = res.data;
@@ -161,9 +143,7 @@ export const useProfileStore = defineStore("profile", () => {
       return res.data;
     } catch (err: unknown) {
       const detail =
-        (err as { response?: { data?: { detail?: string } } }).response?.data
-          ?.detail;
-
+        (err as { response?: { data?: { detail?: string } } }).response?.data?.detail;
       error.value = detail || "Ошибка при обновлении профиля";
       throw err;
     }
