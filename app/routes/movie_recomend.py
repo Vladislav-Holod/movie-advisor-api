@@ -17,9 +17,6 @@ router = APIRouter(
     tags=['AI']
 )
 
-
-
-
 @router.post('/recommend')
 async def recommend_movie_endpoint(prompt: MoviePrompt,
                                     db: AsyncSession = Depends(get_async_db),
@@ -41,18 +38,3 @@ async def recommend_movie_endpoint(prompt: MoviePrompt,
 
     return {'task_id': task_id}
 
-@router.get('/recommend/{task_id}')
-async def get_task_status(task_id:str,
-                          db:AsyncSession = Depends(get_async_db),
-                          current_user = Depends(get_current_user)):
-    history_result = await db.scalar(select(UserHistoryPrompt).
-                                     where(UserHistoryPrompt.task_id == task_id))
-    if history_result is None:
-        raise HTTPException(status_code=404, detail="Task not found")
-    if history_result.user_id != current_user.id:
-        raise HTTPException(status_code=403, detail="Not authorized to view this task")
-    if history_result.status == TaskStatus.SUCCESS:
-        return {'status':history_result.status, 
-                'movies':history_result.movie_recommend}
-    else:
-        return {'status':history_result.status}
