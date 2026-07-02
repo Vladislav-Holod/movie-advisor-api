@@ -5,6 +5,7 @@ from loguru import logger
 from uuid import uuid4
 from app.routes import router as api_router
 
+
 app = FastAPI(
     title='Cinema search service',
     version="0.1.1",redirect_slashes=False
@@ -12,6 +13,7 @@ app = FastAPI(
 app.include_router(api_router)
 
 logger.add("info.log", format="Log: [{extra[log_id]}:{time} - {level} - {message}]", level="INFO", enqueue=True)
+
 
 
 @app.middleware("http")

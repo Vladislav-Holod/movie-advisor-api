@@ -1,9 +1,11 @@
 from fastapi import APIRouter, Depends, HTTPException, status
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy import select
-
+from sqlalchemy.orm import selectinload
 from app.schemas.schemas import (Movie)
-
+from app.db_depends import get_async_db
+from app.models.users_history import UserHistoryPrompt, TaskStatus
+from app.auth import get_current_user
 from app.db_depends import get_async_db
 from app.models import MovieModel
 
@@ -29,3 +31,26 @@ async def create_new_movie(movie: Movie,
     await  db.commit()
     await db.refresh(movie)
     return movie
+
+@router.get('/tasks/{task_id}')
+async def get_task_status(task_id:str,
+                          db:AsyncSession = Depends(get_async_db),
+                          current_user = Depends(get_current_user)):
+    history_result = await db.scalar(
+        select(UserHistoryPrompt)
+        .options(selectinload(UserHistoryPrompt.movie_recommend))
+        .where(
+            UserHistoryPrompt.task_id == task_id,
+            UserHistoryPrompt.user_id == current_user.id,
+        )
+    )
+
+    if history_result is None:
+        raise HTTPException(status_code=404, detail="Task not found")
+    if history_result.user_id != current_user.id:
+        raise HTTPException(status_code=403, detail="Not authorized to view this task")
+    if history_result.status == TaskStatus.SUCCESS:
+        return {'status':history_result.status, 
+                'movies':history_result.movie_recommend}
+    else:
+        return {'status':history_result.status}

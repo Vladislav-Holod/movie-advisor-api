@@ -7,6 +7,27 @@ import type {
   UserUpdateProfile,
 } from "../types";
 
+// ---- Типы под ответы задачи рекомендаций ----
+
+type TaskStatus = "pending" | "running" | "success" | "failed";
+
+interface CreateTaskResponse {
+  task_id: string;
+}
+
+interface TaskStatusResponse {
+  status: TaskStatus;
+  movies?: Movie[];
+  error?: string | null;
+}
+
+// ---- Настройки поллинга ----
+
+const POLL_INTERVAL_MS = 1500;
+const POLL_TIMEOUT_MS = 60_000; // если за минуту не готово — считаем сервис недоступным
+
+const sleep = (ms: number) => new Promise((resolve) => setTimeout(resolve, ms));
+
 export const useMovieStore = defineStore("movie", () => {
   const movies = ref<Movie[]>([]);
   const likedMovies = ref<Movie[]>([]);
@@ -34,20 +55,50 @@ export const useMovieStore = defineStore("movie", () => {
     }
   };
 
+  const pollTaskStatus = async (taskId: string): Promise<Movie[]> => {
+    const startedAt = Date.now();
+
+    while (true) {
+      if (Date.now() - startedAt > POLL_TIMEOUT_MS) {
+        throw new Error("Превышено время ожидания ответа от сервиса рекомендаций");
+      }
+
+      const res = await api.get<TaskStatusResponse>(`/movie/tasks/${taskId}`);
+      const { status, movies: resultMovies, error: taskError } = res.data;
+
+      if (status === "success") {
+        return resultMovies ?? [];
+      }
+
+      if (status === "failed") {
+        throw new Error(taskError || "Не удалось получить рекомендации");
+      }
+
+      // pending / running — ждём и спрашиваем снова
+      await sleep(POLL_INTERVAL_MS);
+    }
+  };
+
   const getRecommendations = async (prompt: string) => {
     isLoading.value = true;
     error.value = "";
     lastPrompt.value = prompt;
     try {
-      const res = await api.post<Movie[]>("/movie/recommend", { prompt });
-      console.log("✅ Ответ от сервера:", res.data);
-      recommendations.value = res.data;
-      return res.data;
+      // 1. создаём задачу, получаем task_id
+      const createRes = await api.post<CreateTaskResponse>("/movie/recommend", { prompt });
+      const { task_id } = createRes.data;
+
+      // 2. опрашиваем статус, пока не готово
+      const result = await pollTaskStatus(task_id);
+
+      recommendations.value = result;
+      return result;
     } catch (err: unknown) {
-      console.error("❌ Ошибка:", err);
       const detail =
         (err as { response?: { data?: { detail?: string } } }).response?.data?.detail;
-      error.value = detail || "Сервис рекомендаций временно недоступен";
+      const message =
+        detail || (err instanceof Error ? err.message : "Сервис рекомендаций временно недоступен");
+      error.value = message;
       throw err;
     } finally {
       isLoading.value = false;
