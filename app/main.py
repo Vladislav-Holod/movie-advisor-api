@@ -3,18 +3,48 @@ from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
 from loguru import logger
 from uuid import uuid4
+from contextlib import asynccontextmanager
+from config import settings
+
 from app.routes import router as api_router
+from app.database import async_engine
+
+logger.add("info.log",
+           format="Log: [{extra[log_id]}:{time} - {level} - {message}]",
+           level="INFO",
+           enqueue=True)
+
+
+@asynccontextmanager
+async def lifespan(app: FastAPI):
+    """
+    Lifespan for the API
+    """
+    logger.info('Starting API_Main')
+    yield
+    await async_engine.dispose()
+    logger.info('Database engine disposed')
 
 
 app = FastAPI(
     title='Cinema search service',
-    version="0.1.1",redirect_slashes=False
+    version=settings.APP_VERSION,
+    redirect_slashes=False,
+    lifespan = lifespan
 )
 app.include_router(api_router)
 
-logger.add("info.log", format="Log: [{extra[log_id]}:{time} - {level} - {message}]", level="INFO", enqueue=True)
-
-
+# CORS конфигурация
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=[
+        "http://localhost:5173",
+    ],  # Для локальной разработки
+    allow_origin_regex=r"^https?://.*$",
+    allow_credentials=True,
+    allow_methods=["*"],
+    allow_headers=["*"],
+)
 
 @app.middleware("http")
 async def log_middleware(request: Request, call_next):
@@ -30,21 +60,6 @@ async def log_middleware(request: Request, call_next):
             logger.error(f"Request to {request.url.path} failed: {ex}")
             response = JSONResponse(content={"success": False}, status_code=500)
         return response
-
-
-# CORS конфигурация
-app.add_middleware(
-    CORSMiddleware,
-    allow_origins=[
-        "http://localhost:5173",
-    ],  # Для локальной разработки
-    allow_origin_regex=r"^https?://.*$",
-    allow_credentials=True,
-    allow_methods=["*"],
-    allow_headers=["*"],
-)
-
-
 
 @app.get('/')
 async def root():

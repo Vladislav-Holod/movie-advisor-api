@@ -9,7 +9,7 @@ from app.services.movie_recommend_sevice import recommend_movie
 
 
 @celery_app.task(bind=True, max_retries=3, retry_backoff=True)
-def recommend_movie_task(self,task_id: str, prompt_text: str):
+def recommend_movie_task(task_id: str, prompt_text: str):
     asyncio.run(_run(task_id, prompt_text))
 
 
