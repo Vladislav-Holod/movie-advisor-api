@@ -2,7 +2,7 @@ from app.schemas.schemas import Movie
 from aiohttp import ClientSession
 import asyncio
 from loguru import logger
-from app.config import config
+from app.config import settings
 
 _default_movie_poster = 'https://img.magnific.com/premium-vector/black-blank-book-cover-isolated-transparent_168129-46.jpg?semt=ais_hybrid&w=740'
 

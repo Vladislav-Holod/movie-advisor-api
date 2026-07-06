@@ -6,12 +6,12 @@ from fastapi import Depends, HTTPException, status
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy import select
 
-from app.config import config
+from app.config import settings
 from app.db_depends import get_async_db
 from app.models import UserModel
 
-ALGORITHM = config.ALGORITHM
-SECRET_KEY = config.SECRET_KEY
+ALGORITHM = settings.ALGORITHM
+SECRET_KEY = settings.SECRET_KEY
 pwd_context = CryptContext(schemes=['argon2']
                            , deprecated='auto')
 

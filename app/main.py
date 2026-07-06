@@ -4,7 +4,7 @@ from fastapi.responses import JSONResponse
 from loguru import logger
 from uuid import uuid4
 from contextlib import asynccontextmanager
-from config import settings
+from app.config import settings
 
 from app.routes import router as api_router
 from app.database import async_engine
@@ -14,6 +14,7 @@ logger.add("info.log",
            level="INFO",
            enqueue=True)
 
+logger = logger.bind(log_id="system")
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
