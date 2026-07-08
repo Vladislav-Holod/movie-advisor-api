@@ -6,8 +6,12 @@ import MovieCard from "../components/MovieCard.vue";
 const historyStore = useHistoryStore();
 
 onMounted(() => {
-  historyStore.getHistory();
+  historyStore.getHistory(true);
 });
+
+const loadMore = () => {
+  historyStore.getHistory();
+};
 
 const formatDate = (iso: string) =>
   new Date(iso).toLocaleString("ru-RU", {
@@ -22,18 +26,18 @@ const formatDate = (iso: string) =>
 <template>
   <div class="history-container">
     <div class="page-header">
-      <h1>История запросов</h1>
+      <h1>🕓 История запросов</h1>
       <p class="subtitle">Все ваши промты и подборки к ним</p>
     </div>
 
-    <div v-if="historyStore.isLoading" class="loading-state">
+    <div v-if="historyStore.isLoading && historyStore.history.length === 0" class="loading-state">
       <div class="spinner"></div>
       <p>Загружаем историю...</p>
     </div>
 
-    <div v-else-if="historyStore.error" class="error-state">
+    <div v-else-if="historyStore.error && historyStore.history.length === 0" class="error-state">
       <p>{{ historyStore.error }}</p>
-      <button @click="historyStore.getHistory" class="btn-secondary">Повторить</button>
+      <button @click="historyStore.getHistory(true)" class="btn-secondary">Повторить</button>
     </div>
 
     <div v-else-if="historyStore.history.length > 0" class="history-list">
@@ -52,13 +56,27 @@ const formatDate = (iso: string) =>
         </div>
         <p v-else class="no-movies">Фильмы не найдены для этого запроса</p>
       </div>
+
+      <div v-if="historyStore.error" class="alert alert-error">
+        ⚠️ {{ historyStore.error }}
+      </div>
+
+      <div v-if="historyStore.hasMore" class="load-more-wrapper">
+        <button
+          @click="loadMore"
+          class="btn-load-more"
+          :disabled="historyStore.isLoading"
+        >
+          {{ historyStore.isLoading ? "Загрузка..." : "Показать ещё" }}
+        </button>
+      </div>
     </div>
 
     <div v-else class="empty-state">
-      <div class="empty-icon"></div>
+      <div class="empty-icon">🕓</div>
       <h2>История пуста</h2>
       <p>Здесь появятся ваши прошлые запросы к AI-рекомендациям.</p>
-      <router-link to="/recommend" class="btn-primary">Получить рекомендации</router-link>
+      <router-link to="/recommend" class="btn-primary">✨ Получить рекомендации</router-link>
     </div>
   </div>
 </template>
@@ -78,6 +96,7 @@ const formatDate = (iso: string) =>
   padding: 4rem 2rem;
   color: #718096;
 }
+.error-state p { color: #c53030; margin-bottom: 1rem; }
 .spinner {
   width: 40px; height: 40px;
   border: 4px solid #e2e8f0;
@@ -126,6 +145,39 @@ const formatDate = (iso: string) =>
   display: grid;
   grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
   gap: 1.5rem;
+}
+
+.alert {
+  padding: 1rem 1.25rem;
+  border-radius: 10px;
+  font-weight: 500;
+  background: #fff5f5;
+  color: #c53030;
+  border-left: 4px solid #fc8181;
+}
+
+.load-more-wrapper {
+  display: flex;
+  justify-content: center;
+  margin-top: 0.5rem;
+}
+.btn-load-more {
+  padding: 0.75rem 2rem;
+  background: white;
+  color: #667eea;
+  border: 2px solid #c7d2fe;
+  border-radius: 10px;
+  font-weight: 700;
+  cursor: pointer;
+  transition: background 0.2s, transform 0.2s;
+}
+.btn-load-more:hover:not(:disabled) {
+  background: #eef2ff;
+  transform: translateY(-2px);
+}
+.btn-load-more:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
 }
 
 .empty-state {

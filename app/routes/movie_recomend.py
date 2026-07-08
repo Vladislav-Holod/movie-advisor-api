@@ -23,7 +23,7 @@ async def recommend_movie_endpoint(prompt: MoviePrompt,
                                     current_user = Depends(get_current_user)):
     
     task_id = str(uuid.uuid4())   # Generate a unique task ID Race condition Prevention
-
+    
     history = UserHistoryPrompt(
         task_id=task_id,
         prompt=prompt.prompt,

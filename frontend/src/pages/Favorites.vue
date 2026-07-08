@@ -6,8 +6,12 @@ import MovieCard from "../components/MovieCard.vue";
 const movieStore = useMovieStore();
 
 onMounted(() => {
-  movieStore.getLikedMovies();
+  movieStore.getLikedMovies(true);
 });
+
+const loadMore = () => {
+  movieStore.getLikedMovies();
+};
 </script>
 
 <template>
@@ -17,7 +21,10 @@ onMounted(() => {
       <p class="subtitle">Фильмы, которые вы сохранили</p>
     </div>
 
-    <div v-if="movieStore.isLoading" class="skeleton-grid">
+    <div
+      v-if="movieStore.isLoadingLiked && movieStore.likedMovies.length === 0"
+      class="skeleton-grid"
+    >
       <div class="skeleton-card" v-for="i in 8" :key="i">
         <div class="skeleton-poster"></div>
         <div class="skeleton-title"></div>
@@ -34,6 +41,20 @@ onMounted(() => {
           :movie="movie"
           class="card-appear"
         />
+      </div>
+
+      <div v-if="movieStore.error" class="alert alert-error">
+        ⚠️ {{ movieStore.error }}
+      </div>
+
+      <div v-if="movieStore.likedHasMore" class="load-more-wrapper">
+        <button
+          @click="loadMore"
+          class="btn-load-more"
+          :disabled="movieStore.isLoadingLiked"
+        >
+          {{ movieStore.isLoadingLiked ? "Загрузка..." : "Показать ещё" }}
+        </button>
       </div>
     </div>
 
@@ -109,6 +130,40 @@ onMounted(() => {
 @keyframes shimmer {
   0% { background-position: 200% 0; }
   100% { background-position: -200% 0; }
+}
+
+.alert {
+  padding: 1rem 1.25rem;
+  border-radius: 10px;
+  margin-top: 1.5rem;
+  font-weight: 500;
+  background: #fff5f5;
+  color: #c53030;
+  border-left: 4px solid #fc8181;
+}
+
+.load-more-wrapper {
+  display: flex;
+  justify-content: center;
+  margin-top: 2rem;
+}
+.btn-load-more {
+  padding: 0.75rem 2rem;
+  background: white;
+  color: #667eea;
+  border: 2px solid #c7d2fe;
+  border-radius: 10px;
+  font-weight: 700;
+  cursor: pointer;
+  transition: background 0.2s, transform 0.2s;
+}
+.btn-load-more:hover:not(:disabled) {
+  background: #eef2ff;
+  transform: translateY(-2px);
+}
+.btn-load-more:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
 }
 
 .no-favorites {

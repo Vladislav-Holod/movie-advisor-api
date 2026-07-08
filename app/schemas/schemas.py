@@ -27,6 +27,10 @@ class Movie(BaseModel):
 
     model_config = ConfigDict(from_attributes=True)
 
+class MovieListResponse(BaseModel):
+    movies: list[Movie]
+    next_cursor: int | None = Field(default=None, description='Курсор для следующей страницы')
+    has_more: bool = Field(default=False, description='Есть ли еще фильмы для пагинации')
 
 class RecommendResponse(BaseModel):
     prompt: str
@@ -82,5 +86,8 @@ class UserHistory(BaseModel):
     validation_alias="movie_recommend")
 
     model_config = ConfigDict(from_attributes=True)
+
 class UserGroupHistory(BaseModel):
     history: list[UserHistory] = Field(description='Список истории')
+    next_cursor: int | None = Field(default=None, description='Курсор для следующей страницы')
+    has_more: bool = Field(default=False, description='Есть ли еще истории для пагинации')

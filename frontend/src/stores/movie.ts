@@ -5,7 +5,7 @@ import type {
   Movie,
   UserProfile,
   UserUpdateProfile,
-  UserGroupHistory, // добавили
+  UserHistory,
 } from "../types";
 
 // ---- Типы под ответы задачи рекомендаций ----
@@ -31,12 +31,17 @@ const sleep = (ms: number) => new Promise((resolve) => setTimeout(resolve, ms));
 
 export const useMovieStore = defineStore("movie", () => {
   const movies = ref<Movie[]>([]);
-  const likedMovies = ref<Movie[]>([]);
   const recommendations = ref<Movie[] | null>(null);
   const lastPrompt = ref("");
   const isLoading = ref(false);
   const isFetchingMovies = ref(false);
   const error = ref("");
+
+  // ---- Избранное (пагинация курсором) ----
+  const likedMovies = ref<Movie[]>([]);
+  const likedNextCursor = ref<number | null>(null);
+  const likedHasMore = ref(true);
+  const isLoadingLiked = ref(false);
 
   const catalogMovies = computed(() => movies.value);
 
@@ -106,10 +111,48 @@ export const useMovieStore = defineStore("movie", () => {
     }
   };
 
+  const getLikedMovies = async (reset = false) => {
+    if (isLoadingLiked.value) return;
+
+    if (reset) {
+      likedMovies.value = [];
+      likedNextCursor.value = null;
+      likedHasMore.value = true;
+    }
+
+    if (!likedHasMore.value) return;
+
+    isLoadingLiked.value = true;
+    try {
+      const params: Record<string, number> = { limit: 12 };
+      if (likedNextCursor.value !== null) {
+        params.cursor = likedNextCursor.value;
+      }
+
+      // бэкенд отдаёт поле "movies", а не "items"
+      const res = await api.get<{
+        movies: Movie[];
+        next_cursor: number | null;
+        has_more: boolean;
+      }>("/actions/like/my", { params });
+
+      likedMovies.value.push(...res.data.movies);
+      likedNextCursor.value = res.data.next_cursor;
+      likedHasMore.value = res.data.has_more;
+    } catch (err: unknown) {
+      const detail =
+        (err as { response?: { data?: { detail?: string } } }).response?.data?.detail;
+      error.value = detail || "Ошибка при загрузке избранного";
+      if (reset) likedMovies.value = [];
+    } finally {
+      isLoadingLiked.value = false;
+    }
+  };
+
   const likeMovie = async (movieId: number) => {
     try {
       await api.post(`/actions/like/${movieId}`);
-      await getLikedMovies();
+      await getLikedMovies(true); // перезагружаем список избранного с начала
     } catch (err: unknown) {
       const detail =
         (err as { response?: { data?: { detail?: string } } }).response?.data?.detail;
@@ -130,15 +173,6 @@ export const useMovieStore = defineStore("movie", () => {
     }
   };
 
-  const getLikedMovies = async () => {
-    try {
-      const res = await api.get<Movie[]>("/actions/like/my");
-      likedMovies.value = res.data;
-    } catch {
-      likedMovies.value = [];
-    }
-  };
-
   const isLiked = computed(() => {
     return (movieId: number) => likedMovies.value.some((m) => m.id === movieId);
   });
@@ -151,6 +185,9 @@ export const useMovieStore = defineStore("movie", () => {
   return {
     movies,
     likedMovies,
+    likedNextCursor,
+    likedHasMore,
+    isLoadingLiked,
     recommendations,
     lastPrompt,
     isLoading,
@@ -210,22 +247,46 @@ export const useProfileStore = defineStore("profile", () => {
     updateProfile,
   };
 });
+
 export const useHistoryStore = defineStore("history", () => {
-  const history = ref<UserGroupHistory["history"]>([]);
+  const history = ref<UserHistory[]>([]);
+  const nextCursor = ref<number | null>(null);
+  const hasMore = ref(true);
   const isLoading = ref(false);
   const error = ref("");
 
-  const getHistory = async () => {
+  const getHistory = async (reset = false) => {
+    if (isLoading.value) return;
+
+    if (reset) {
+      history.value = [];
+      nextCursor.value = null;
+      hasMore.value = true;
+    }
+
+    if (!hasMore.value) return;
+
     isLoading.value = true;
     error.value = "";
     try {
-      const res = await api.get<UserGroupHistory>("/actions/history");
-      history.value = res.data.history;
+      const params: Record<string, number> = { limit: 10 };
+      if (nextCursor.value !== null) {
+        params.cursor = nextCursor.value;
+      }
+
+      const res = await api.get<{
+        history: UserHistory[];
+        next_cursor: number | null;
+        has_more: boolean;
+      }>("/actions/history", { params });
+
+      history.value.push(...res.data.history);
+      nextCursor.value = res.data.next_cursor;
+      hasMore.value = res.data.has_more;
     } catch (err: unknown) {
       const detail =
         (err as { response?: { data?: { detail?: string } } }).response?.data?.detail;
       error.value = detail || "Ошибка при загрузке истории";
-      history.value = [];
     } finally {
       isLoading.value = false;
     }
@@ -233,6 +294,8 @@ export const useHistoryStore = defineStore("history", () => {
 
   return {
     history,
+    nextCursor,
+    hasMore,
     isLoading,
     error,
     getHistory,
