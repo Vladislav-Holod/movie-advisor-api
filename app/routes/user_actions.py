@@ -110,7 +110,7 @@ async def get_history_user(
         select(UserHistoryPrompt)
         .options(selectinload(UserHistoryPrompt.movie_recommend))
         .where(UserHistoryPrompt.user_id == current_user.id)
-        .where(UserHistoryPrompt.movie_recommend != None)
+        .where(UserHistoryPrompt.movie_recommend is not None)
         .order_by(UserHistoryPrompt.created_at.desc())
     )
     if cursor:
