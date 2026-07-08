@@ -13,7 +13,7 @@ onMounted(() => {
 <template>
   <div class="favorites-container">
     <div class="page-header">
-      <h1>❤️ Избранное</h1>
+      <h1>Избранное</h1>
       <p class="subtitle">Фильмы, которые вы сохранили</p>
     </div>
 
@@ -43,8 +43,8 @@ onMounted(() => {
       <p>Получите рекомендации и добавьте понравившиеся фильмы в избранное.</p>
       <p class="hint">Не забудьте указать имя в профиле — без него лайки не сохраняются.</p>
       <div class="actions">
-        <router-link to="/recommend" class="btn-primary">✨ Получить рекомендации</router-link>
-        <router-link to="/profile" class="btn-secondary">👤 Заполнить профиль</router-link>
+        <router-link to="/recommend" class="btn-primary">Получить рекомендации</router-link>
+        <router-link to="/profile" class="btn-secondary">Заполнить профиль</router-link>
       </div>
     </div>
   </div>

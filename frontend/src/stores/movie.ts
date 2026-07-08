@@ -5,6 +5,7 @@ import type {
   Movie,
   UserProfile,
   UserUpdateProfile,
+  UserGroupHistory, // добавили
 } from "../types";
 
 // ---- Типы под ответы задачи рекомендаций ----
@@ -207,5 +208,33 @@ export const useProfileStore = defineStore("profile", () => {
     hasName,
     getProfile,
     updateProfile,
+  };
+});
+export const useHistoryStore = defineStore("history", () => {
+  const history = ref<UserGroupHistory["history"]>([]);
+  const isLoading = ref(false);
+  const error = ref("");
+
+  const getHistory = async () => {
+    isLoading.value = true;
+    error.value = "";
+    try {
+      const res = await api.get<UserGroupHistory>("/actions/history");
+      history.value = res.data.history;
+    } catch (err: unknown) {
+      const detail =
+        (err as { response?: { data?: { detail?: string } } }).response?.data?.detail;
+      error.value = detail || "Ошибка при загрузке истории";
+      history.value = [];
+    } finally {
+      isLoading.value = false;
+    }
+  };
+
+  return {
+    history,
+    isLoading,
+    error,
+    getHistory,
   };
 });

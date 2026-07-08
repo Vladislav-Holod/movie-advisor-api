@@ -1,6 +1,6 @@
 from fastapi import APIRouter, Depends, HTTPException, status
 from sqlalchemy.ext.asyncio import AsyncSession
-from sqlalchemy import select
+from sqlalchemy import select,desc
 from sqlalchemy.orm import selectinload
 
 from app.schemas.schemas import Movie
@@ -83,6 +83,8 @@ async def get_history_user(
         select(UserHistoryPrompt)
         .options(selectinload(UserHistoryPrompt.movie_recommend))
         .where(UserHistoryPrompt.user_id == current_user.id)
+        .where(UserHistoryPrompt.movie_recommend != None)
+        .order_by(UserHistoryPrompt.created_at.desc())
     )
 
     history = result.all()

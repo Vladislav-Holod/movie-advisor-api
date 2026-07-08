@@ -36,3 +36,15 @@ export interface UserUpdateProfile {
   favorite_genres?: string | null;
   about_me?: string | null;
 }
+export interface UserHistory {
+  id: number;
+  prompt: string;
+  response: string;
+  user_id: number;
+  created_at: string;
+  movie_list: Movie[];
+}
+
+export interface UserGroupHistory {
+  history: UserHistory[];
+}

@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { ref, onMounted } from "vue";
+import { ref, computed, onMounted } from "vue";
 import { useMovieStore } from "../stores/movie";
 import { useProfileStore } from "../stores/movie";
 import { useAuthStore } from "../stores/auth";
@@ -12,26 +12,31 @@ const authStore = useAuthStore();
 const prompt = ref("");
 const serviceUnavailable = ref(false);
 const currentPhrase = ref(0);
+const isFocused = ref(false);
 
 const SUGGESTIONS = [
-  "Фильмы про космос и будущее человечества",
-  "Лёгкая комедия для вечера с друзьями",
-  "Детективы с неожиданной развязкой",
-  "Классика советского кино",
-  "Драмы про настоящую дружбу",
-  "Боевики с харизматичным героем",
+  { text: "Фильмы про космос и будущее человечества", icon: "🪐" },
+  { text: "Лёгкая комедия для вечера с друзьями", icon: "🎈" },
+  { text: "Детективы с неожиданной развязкой", icon: "🔍" },
+  { text: "Классика советского кино", icon: "📽️" },
+  { text: "Драмы про настоящую дружбу", icon: "🤝" },
+  { text: "Боевики с харизматичным героем", icon: "💥" },
 ];
 
 const LOADING_PHRASES = [
-  "🔍 Анализируем ваш запрос...",
-  "🤖 AI подбирает фильмы...",
-  "🎬 Ищем лучшие совпадения...",
-  "⭐ Оцениваем рейтинги...",
-  "🎯 Финальный отбор подборки...",
-  "✨ Почти готово!",
+  "Анализируем ваш запрос...",
+  "AI подбирает фильмы...",
+  "Ищем лучшие совпадения...",
+  "Оцениваем рейтинги...",
+  "Финальный отбор подборки...",
+  "Почти готово...",
 ];
 
 let phraseInterval: ReturnType<typeof setInterval> | null = null;
+
+const loadingProgress = computed(
+  () => ((currentPhrase.value + 1) / LOADING_PHRASES.length) * 100
+);
 
 const startPhraseLoop = () => {
   currentPhrase.value = 0;
@@ -87,10 +92,25 @@ const reset = () => {
 
 <template>
   <div class="recommend-container">
-    <div class="page-header">
-      <h1>🤖 AI Рекомендации</h1>
-      <p>Опишите, какие фильмы хотите найти — система подберёт подборку</p>
-    </div>
+    <!-- ═══ HERO ═══ -->
+    <section class="hero">
+      <div class="hero-bg" aria-hidden="true">
+        <div class="blob blob-1"></div>
+        <div class="blob blob-2"></div>
+        <div class="beam"></div>
+      </div>
+      <div class="hero-content">
+        <p class="kicker">AI-подбор фильмов</p>
+        <h1 class="hero-title">
+          Опишите настроение —<br />
+          <span class="accent">получите подборку</span>
+        </h1>
+        <p class="hero-sub">
+          Расскажите, что хочется посмотреть: жанр, атмосферу, похожие фильмы —
+          нейросеть проанализирует запрос и подберёт варианты из базы Кинопоиска
+        </p>
+      </div>
+    </section>
 
     <div v-if="!authStore.isAuthenticated()" class="auth-banner">
       <div class="lock-icon">🔒</div>
@@ -100,18 +120,21 @@ const reset = () => {
     </div>
 
     <template v-else>
-      <div class="prompt-section">
+      <div class="prompt-section" :class="{ focused: isFocused }">
+        <div class="prompt-glow" aria-hidden="true"></div>
         <textarea
           v-model="prompt"
           rows="4"
           maxlength="300"
-          placeholder="Например: атмосферный sci-fi про время..."
+          placeholder="Например: атмосферный sci-fi про путешествия во времени, с ощущением одиночества и красивой музыкой..."
           class="prompt-textarea"
           :disabled="movieStore.isLoading"
+          @focus="isFocused = true"
+          @blur="isFocused = false"
         />
 
         <div class="prompt-footer">
-          <span class="char-count">{{ prompt.length }}/300</span>
+          <span class="char-count" :class="{ warn: prompt.length > 260 }">{{ prompt.length }}/300</span>
           <div class="prompt-actions">
             <button
               v-if="movieStore.recommendations || serviceUnavailable"
@@ -127,7 +150,7 @@ const reset = () => {
               :disabled="movieStore.isLoading || prompt.trim().length < 10"
               @click="handleSubmit"
             >
-              <span v-if="!movieStore.isLoading">✨ Найти фильмы</span>
+              <span v-if="!movieStore.isLoading">Найти фильмы</span>
               <span v-else class="btn-loading">
                 <span class="btn-dot"></span>
                 <span class="btn-dot"></span>
@@ -140,30 +163,35 @@ const reset = () => {
         <div class="suggestions">
           <button
             v-for="s in SUGGESTIONS"
-            :key="s"
+            :key="s.text"
             class="suggestion-chip"
             :disabled="movieStore.isLoading"
-            @click="useSuggestion(s)"
+            @click="useSuggestion(s.text)"
           >
-            {{ s }}
+            <span class="chip-icon">{{ s.icon }}</span>
+            {{ s.text }}
           </button>
         </div>
       </div>
 
-      <div v-if="movieStore.error && !movieStore.isLoading" class="alert alert-error">
-        ⚠️ {{ movieStore.error }}
-      </div>
+      <transition name="alert-fade">
+        <div v-if="movieStore.error && !movieStore.isLoading" class="alert alert-error">
+          <span class="alert-icon">⚠️</span> {{ movieStore.error }}
+        </div>
+      </transition>
 
-      <div v-if="serviceUnavailable" class="alert alert-warning">
-        🚧 Сервис временно недоступен. Попробуйте позже.
-      </div>
+      <transition name="alert-fade">
+        <div v-if="serviceUnavailable" class="alert alert-warning">
+          <span class="alert-icon">🚧</span> Сервис временно недоступен. Попробуйте позже.
+        </div>
+      </transition>
 
       <div v-if="movieStore.isLoading" class="loading-state">
         <div class="ai-loader">
           <div class="ai-ring"></div>
           <div class="ai-ring ai-ring--2"></div>
           <div class="ai-ring ai-ring--3"></div>
-          <div class="ai-icon">✨</div>
+          <div class="ai-core"></div>
         </div>
 
         <div class="loading-phrase-wrapper">
@@ -172,6 +200,10 @@ const reset = () => {
               {{ LOADING_PHRASES[currentPhrase] }}
             </p>
           </transition>
+        </div>
+
+        <div class="progress-track">
+          <div class="progress-fill" :style="{ width: loadingProgress + '%' }"></div>
         </div>
 
         <div class="skeleton-grid">
@@ -185,22 +217,23 @@ const reset = () => {
 
       <div v-else-if="movieStore.recommendations && movieStore.recommendations.length > 0" class="results">
         <div class="results-header">
-          <h2>🎬 Подборка для вас</h2>
-          <p class="results-prompt">Запрос: «{{ prompt || movieStore.lastPrompt }}»</p>
+          <h2>Подборка для вас</h2>
+          <p class="results-prompt">«{{ prompt || movieStore.lastPrompt }}»</p>
           <span class="results-count">{{ movieStore.recommendations.length }} фильмов</span>
         </div>
         <div class="movies-grid">
           <MovieCard
-            v-for="m in movieStore.recommendations"
+            v-for="(m, i) in movieStore.recommendations"
             :key="m.id"
             :movie="m"
             class="movie-card-appear"
+            :style="{ animationDelay: (i * 0.05) + 's' }"
           />
         </div>
       </div>
 
       <div v-else-if="!movieStore.isLoading && !movieStore.error" class="empty-hint">
-        <div class="empty-icon">✨</div>
+        <div class="empty-icon"></div>
         <p>Введите запрос и нажмите «Найти фильмы»</p>
         <p class="empty-sub">AI проанализирует запрос и подберёт лучшие варианты из базы Кинопоиска</p>
       </div>
@@ -215,10 +248,101 @@ const reset = () => {
   padding: 2rem;
 }
 
-.page-header { margin-bottom: 2rem; }
-.page-header h1 { font-size: 2rem; font-weight: 800; color: #1a202c; margin: 0 0 0.5rem; }
-.page-header p { color: #718096; margin: 0; }
+/* ─── HERO ─── */
+.hero {
+  position: relative;
+  border-radius: 24px;
+  overflow: hidden;
+  margin-bottom: 2.5rem;
+  background: linear-gradient(135deg, #eef2ff 0%, #f5f3ff 50%, #fdf4ff 100%);
+  border: 1px solid rgba(102, 126, 234, 0.15);
+  box-shadow: 0 8px 40px rgba(102, 126, 234, 0.12);
+}
 
+.hero-bg {
+  position: absolute;
+  inset: 0;
+  overflow: hidden;
+  z-index: 0;
+}
+
+.blob {
+  position: absolute;
+  border-radius: 50%;
+  filter: blur(70px);
+  opacity: 0.4;
+  animation: blobFloat ease-in-out infinite;
+}
+.blob-1 {
+  width: 320px; height: 320px;
+  background: #c7d2fe;
+  top: -100px; right: -60px;
+  animation-duration: 20s;
+}
+.blob-2 {
+  width: 260px; height: 260px;
+  background: #fbcfe8;
+  bottom: -90px; left: -40px;
+  animation-duration: 16s;
+  animation-direction: reverse;
+}
+@keyframes blobFloat {
+  0%, 100% { transform: translate(0, 0) scale(1); }
+  33% { transform: translate(25px, -20px) scale(1.05); }
+  66% { transform: translate(-15px, 15px) scale(0.95); }
+}
+
+.beam {
+  position: absolute;
+  top: -50%;
+  left: 50%;
+  width: 2px;
+  height: 200%;
+  background: linear-gradient(to bottom, transparent, rgba(118, 75, 162, 0.15), transparent);
+  transform: translateX(-50%) rotate(12deg);
+  animation: beamSweep 6s ease-in-out infinite;
+}
+@keyframes beamSweep {
+  0%, 100% { left: 20%; opacity: 0.5; }
+  50% { left: 80%; opacity: 1; }
+}
+
+.hero-content {
+  position: relative;
+  z-index: 1;
+  padding: 3rem 2.5rem;
+  max-width: 640px;
+}
+.kicker {
+  font-size: 13px;
+  font-weight: 700;
+  letter-spacing: 1.5px;
+  text-transform: uppercase;
+  color: #667eea;
+  margin: 0 0 0.75rem;
+}
+.hero-title {
+  font-size: clamp(1.9rem, 4vw, 2.6rem);
+  font-weight: 900;
+  line-height: 1.2;
+  margin: 0 0 1rem;
+  letter-spacing: -1px;
+  color: #1a202c;
+}
+.accent {
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+}
+.hero-sub {
+  font-size: 1.02rem;
+  color: #4a5568;
+  margin: 0;
+  line-height: 1.65;
+}
+
+/* ─── AUTH BANNER ─── */
 .auth-banner {
   background: linear-gradient(135deg, #eef2ff 0%, #f5f3ff 100%);
   border: 2px solid #c7d2fe;
@@ -243,15 +367,34 @@ const reset = () => {
 }
 .btn-auth:hover { transform: translateY(-3px); box-shadow: 0 14px 40px rgba(102, 126, 234, 0.45); }
 
+/* ─── PROMPT ─── */
 .prompt-section {
+  position: relative;
   background: #fff;
   border: 2px solid #e2e8f0;
-  border-radius: 16px;
+  border-radius: 18px;
   padding: 1.5rem;
   margin-bottom: 2rem;
   box-shadow: 0 4px 20px rgba(0,0,0,0.05);
+  transition: border-color 0.3s, box-shadow 0.3s;
+  overflow: hidden;
 }
+.prompt-section.focused {
+  border-color: #a5b4fc;
+  box-shadow: 0 8px 32px rgba(102, 126, 234, 0.16);
+}
+.prompt-glow {
+  position: absolute;
+  top: -60%;
+  right: -20%;
+  width: 260px;
+  height: 260px;
+  background: radial-gradient(circle, rgba(118, 75, 162, 0.08) 0%, transparent 70%);
+  pointer-events: none;
+}
+
 .prompt-textarea {
+  position: relative;
   width: 100%;
   border: none;
   outline: none;
@@ -265,6 +408,7 @@ const reset = () => {
   background: transparent;
   box-sizing: border-box;
 }
+.prompt-textarea::placeholder { color: #b0b9c9; }
 .prompt-textarea:disabled { opacity: 0.6; cursor: not-allowed; }
 
 .prompt-footer {
@@ -277,7 +421,8 @@ const reset = () => {
   flex-wrap: wrap;
   gap: 0.75rem;
 }
-.char-count { font-size: 12px; color: #a0aec0; }
+.char-count { font-size: 12px; color: #a0aec0; transition: color 0.2s; }
+.char-count.warn { color: #dd6b20; font-weight: 600; }
 .prompt-actions { display: flex; gap: 0.75rem; }
 
 .btn-reset {
@@ -303,13 +448,14 @@ const reset = () => {
   font-size: 0.95rem;
   font-weight: 700;
   min-width: 160px;
-  transition: opacity 0.2s, transform 0.2s;
+  transition: opacity 0.2s, transform 0.2s, box-shadow 0.2s;
   display: flex;
   align-items: center;
   justify-content: center;
+  box-shadow: 0 6px 18px rgba(102, 126, 234, 0.28);
 }
-.btn-submit:hover:not(:disabled) { transform: translateY(-2px); }
-.btn-submit:disabled { opacity: 0.45; cursor: not-allowed; }
+.btn-submit:hover:not(:disabled) { transform: translateY(-2px); box-shadow: 0 10px 26px rgba(102, 126, 234, 0.38); }
+.btn-submit:disabled { opacity: 0.45; cursor: not-allowed; box-shadow: none; }
 
 .btn-loading { display: flex; gap: 5px; align-items: center; }
 .btn-dot {
@@ -329,43 +475,59 @@ const reset = () => {
   display: flex;
   flex-wrap: wrap;
   gap: 8px;
-  margin-top: 1rem;
+  margin-top: 1.1rem;
 }
 .suggestion-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
   background: #f0f4ff;
   color: #4f46e5;
   border: 1px solid #c7d2fe;
   border-radius: 20px;
-  padding: 6px 14px;
+  padding: 6px 14px 6px 10px;
   font-size: 13px;
   font-weight: 500;
   cursor: pointer;
-  transition: background 0.2s, transform 0.15s;
+  transition: background 0.2s, transform 0.15s, border-color 0.2s;
 }
-.suggestion-chip:hover:not(:disabled) { background: #e0e7ff; transform: translateY(-1px); }
+.chip-icon { font-size: 14px; }
+.suggestion-chip:hover:not(:disabled) {
+  background: #e0e7ff;
+  border-color: #a5b4fc;
+  transform: translateY(-1px);
+}
 .suggestion-chip:disabled { opacity: 0.5; cursor: not-allowed; }
 
+/* ─── ALERTS ─── */
 .alert {
+  display: flex;
+  align-items: center;
+  gap: 10px;
   padding: 1rem 1.25rem;
   border-radius: 10px;
   margin-bottom: 1.5rem;
   font-weight: 500;
 }
+.alert-icon { flex-shrink: 0; }
 .alert-error { background: #fff5f5; color: #c53030; border-left: 4px solid #fc8181; }
 .alert-warning { background: #fffbeb; color: #92400e; border-left: 4px solid #fbbf24; }
+.alert-fade-enter-active, .alert-fade-leave-active { transition: opacity 0.3s, transform 0.3s; }
+.alert-fade-enter-from, .alert-fade-leave-to { opacity: 0; transform: translateY(-6px); }
 
+/* ─── LOADING ─── */
 .loading-state {
   display: flex;
   flex-direction: column;
   align-items: center;
-  gap: 2rem;
-  padding: 2.5rem 0;
+  gap: 1.5rem;
+  padding: 2.5rem 0 1rem;
 }
 
 .ai-loader {
   position: relative;
-  width: 80px;
-  height: 80px;
+  width: 84px;
+  height: 84px;
   display: flex;
   align-items: center;
   justify-content: center;
@@ -392,18 +554,20 @@ const reset = () => {
 }
 @keyframes ringSpin { to { transform: rotate(360deg); } }
 
-.ai-icon {
-  font-size: 1.4rem;
-  animation: iconPulse 2s ease-in-out infinite;
-  position: relative;
-  z-index: 1;
+.ai-core {
+  width: 14px;
+  height: 14px;
+  border-radius: 50%;
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  animation: corePulse 1.6s ease-in-out infinite;
+  box-shadow: 0 0 20px rgba(118, 75, 162, 0.5);
 }
-@keyframes iconPulse {
-  0%, 100% { transform: scale(1); opacity: 0.8; }
-  50% { transform: scale(1.2); opacity: 1; }
+@keyframes corePulse {
+  0%, 100% { transform: scale(1); opacity: 0.85; }
+  50% { transform: scale(1.35); opacity: 1; }
 }
 
-.loading-phrase-wrapper { height: 28px; }
+.loading-phrase-wrapper { height: 26px; }
 .loading-phrase {
   font-size: 1rem;
   color: #4a5568;
@@ -416,11 +580,26 @@ const reset = () => {
 .phrase-fade-enter-from { opacity: 0; transform: translateY(8px); }
 .phrase-fade-leave-to { opacity: 0; transform: translateY(-8px); }
 
+.progress-track {
+  width: 220px;
+  height: 4px;
+  background: #edf0f7;
+  border-radius: 4px;
+  overflow: hidden;
+}
+.progress-fill {
+  height: 100%;
+  background: linear-gradient(90deg, #667eea 0%, #764ba2 100%);
+  border-radius: 4px;
+  transition: width 0.6s ease;
+}
+
 .skeleton-grid {
   display: grid;
   grid-template-columns: repeat(auto-fill, minmax(160px, 1fr));
   gap: 1.25rem;
   width: 100%;
+  margin-top: 0.5rem;
 }
 .skeleton-card { display: flex; flex-direction: column; gap: 8px; }
 .skeleton-poster {
@@ -451,6 +630,7 @@ const reset = () => {
   100% { background-position: -200% 0; }
 }
 
+/* ─── RESULTS ─── */
 .results-header {
   display: flex;
   align-items: baseline;
@@ -475,18 +655,13 @@ const reset = () => {
   grid-template-columns: repeat(auto-fill, minmax(240px, 1fr));
   gap: 1.75rem;
 }
-.movie-card-appear { animation: cardAppear 0.4s ease-out both; }
-.movies-grid > *:nth-child(1) { animation-delay: 0.05s; }
-.movies-grid > *:nth-child(2) { animation-delay: 0.1s; }
-.movies-grid > *:nth-child(3) { animation-delay: 0.15s; }
-.movies-grid > *:nth-child(4) { animation-delay: 0.2s; }
-.movies-grid > *:nth-child(5) { animation-delay: 0.25s; }
-.movies-grid > *:nth-child(6) { animation-delay: 0.3s; }
+.movie-card-appear { animation: cardAppear 0.45s ease-out both; }
 @keyframes cardAppear {
   from { opacity: 0; transform: translateY(20px); }
   to { opacity: 1; transform: translateY(0); }
 }
 
+/* ─── EMPTY ─── */
 .empty-hint { text-align: center; padding: 3rem 2rem; color: #a0aec0; }
 .empty-icon { font-size: 2.5rem; margin-bottom: 0.75rem; }
 .empty-sub {
@@ -499,11 +674,17 @@ const reset = () => {
 
 @media (max-width: 768px) {
   .recommend-container { padding: 1rem; }
+  .hero-content { padding: 2rem 1.5rem; }
   .movies-grid { grid-template-columns: repeat(auto-fill, minmax(200px, 1fr)); gap: 1rem; }
   .skeleton-grid { grid-template-columns: repeat(3, 1fr); }
   .prompt-footer { flex-direction: column; align-items: stretch; }
   .prompt-actions { justify-content: flex-end; }
   .results-header { flex-direction: column; }
   .results-count { margin-left: 0; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .blob, .beam, .ai-ring, .ai-core, .btn-dot, .skeleton-poster,
+  .skeleton-title, .skeleton-meta { animation: none !important; }
 }
 </style>

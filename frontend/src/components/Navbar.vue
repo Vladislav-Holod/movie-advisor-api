@@ -42,6 +42,14 @@ const isActive = (path: string) => route.path === path;
         >
           Избранное
         </router-link>
+        <router-link
+        v-if="auth.isAuthenticated()"
+        to="/history"
+        :class="{ active: isActive('/history') }"
+        class="nav-link"
+      >
+        История
+      </router-link>
 
         <router-link
           v-if="auth.isAuthenticated()"

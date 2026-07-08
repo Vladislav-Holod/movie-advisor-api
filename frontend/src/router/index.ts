@@ -6,7 +6,7 @@ import Auth from "../pages/Auth.vue";
 import Profile from "../pages/Profile.vue";
 import Favorites from "../pages/Favorites.vue";
 import Recommend from "../pages/Recommend.vue";
-
+import History from "../pages/History.vue";
 const routes = [
   {
     path: "/",
@@ -32,6 +32,12 @@ const routes = [
     path: "/favorites",
     name: "Favorites",
     component: Favorites,
+    meta: { requiresAuth: true },
+  },
+    {
+    path: "/history",
+    name: "History",
+    component: History,
     meta: { requiresAuth: true },
   },
   {
