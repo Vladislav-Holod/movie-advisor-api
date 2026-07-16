@@ -29,6 +29,7 @@ export interface UserProfile {
   about_me: string | null;
   user_id: number;
   created_at: string;
+  image_url: string | null;
 }
 
 export interface UserUpdateProfile {

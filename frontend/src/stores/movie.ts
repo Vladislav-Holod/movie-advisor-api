@@ -22,12 +22,26 @@ interface TaskStatusResponse {
   error?: string | null;
 }
 
+interface UploadImageResponse {
+  filename: string;
+  content_type: string;
+  message: string;
+}
+
 // ---- Настройки поллинга ----
 
 const POLL_INTERVAL_MS = 1500;
 const POLL_TIMEOUT_MS = 60_000; // если за минуту не готово — считаем сервис недоступным
 
+// ---- Настройки загрузки аватара ----
+
+const MAX_AVATAR_SIZE = 5 * 1024 * 1024; // 5 MB, держим в синхроне с бэком
+const ALLOWED_AVATAR_TYPES = ["image/jpeg", "image/png", "image/webp"];
+
 const sleep = (ms: number) => new Promise((resolve) => setTimeout(resolve, ms));
+
+const extractDetail = (err: unknown): string | undefined =>
+  (err as { response?: { data?: { detail?: string } } }).response?.data?.detail;
 
 export const useMovieStore = defineStore("movie", () => {
   const movies = ref<Movie[]>([]);
@@ -52,9 +66,7 @@ export const useMovieStore = defineStore("movie", () => {
       const res = await api.get<Movie[]>("/movie");
       movies.value = res.data;
     } catch (err: unknown) {
-      const detail =
-        (err as { response?: { data?: { detail?: string } } }).response?.data?.detail;
-      error.value = detail || "Ошибка при загрузке фильмов";
+      error.value = extractDetail(err) || "Ошибка при загрузке фильмов";
       movies.value = [];
     } finally {
       isFetchingMovies.value = false;
@@ -100,8 +112,7 @@ export const useMovieStore = defineStore("movie", () => {
       recommendations.value = result;
       return result;
     } catch (err: unknown) {
-      const detail =
-        (err as { response?: { data?: { detail?: string } } }).response?.data?.detail;
+      const detail = extractDetail(err);
       const message =
         detail || (err instanceof Error ? err.message : "Сервис рекомендаций временно недоступен");
       error.value = message;
@@ -140,9 +151,7 @@ export const useMovieStore = defineStore("movie", () => {
       likedNextCursor.value = res.data.next_cursor;
       likedHasMore.value = res.data.has_more;
     } catch (err: unknown) {
-      const detail =
-        (err as { response?: { data?: { detail?: string } } }).response?.data?.detail;
-      error.value = detail || "Ошибка при загрузке избранного";
+      error.value = extractDetail(err) || "Ошибка при загрузке избранного";
       if (reset) likedMovies.value = [];
     } finally {
       isLoadingLiked.value = false;
@@ -154,9 +163,7 @@ export const useMovieStore = defineStore("movie", () => {
       await api.post(`/actions/like/${movieId}`);
       await getLikedMovies(true); // перезагружаем список избранного с начала
     } catch (err: unknown) {
-      const detail =
-        (err as { response?: { data?: { detail?: string } } }).response?.data?.detail;
-      error.value = detail || "Ошибка при добавлении в избранное";
+      error.value = extractDetail(err) || "Ошибка при добавлении в избранное";
       throw err;
     }
   };
@@ -166,9 +173,7 @@ export const useMovieStore = defineStore("movie", () => {
       await api.delete(`/actions/like/${movieId}`);
       likedMovies.value = likedMovies.value.filter((movie) => movie.id !== movieId);
     } catch (err: unknown) {
-      const detail =
-        (err as { response?: { data?: { detail?: string } } }).response?.data?.detail;
-      error.value = detail || "Ошибка при удалении из избранного";
+      error.value = extractDetail(err) || "Ошибка при удалении из избранного";
       throw err;
     }
   };
@@ -207,6 +212,7 @@ export const useMovieStore = defineStore("movie", () => {
 export const useProfileStore = defineStore("profile", () => {
   const profile = ref<UserProfile | null>(null);
   const isLoading = ref(false);
+  const isUploadingImage = ref(false);
   const error = ref("");
 
   const hasName = computed(() => !!profile.value?.name?.trim());
@@ -231,20 +237,65 @@ export const useProfileStore = defineStore("profile", () => {
       profile.value = res.data;
       return res.data;
     } catch (err: unknown) {
-      const detail =
-        (err as { response?: { data?: { detail?: string } } }).response?.data?.detail;
-      error.value = detail || "Ошибка при обновлении профиля";
+      const detail = extractDetail(err);
+
+      // локализуем известные ошибки бэкенда
+      if (detail === "Profile name already exists") {
+        error.value = "Это имя уже занято, выберите другое";
+      } else {
+        error.value = detail || "Ошибка при обновлении профиля";
+      }
       throw err;
+    }
+  };
+
+  const validateAvatarFile = (file: File): string | null => {
+    if (!ALLOWED_AVATAR_TYPES.includes(file.type)) {
+      return "Допустимые форматы: JPEG, PNG, WEBP";
+    }
+    if (file.size > MAX_AVATAR_SIZE) {
+      return `Файл слишком большой (максимум ${MAX_AVATAR_SIZE / (1024 * 1024)} МБ)`;
+    }
+    return null;
+  };
+
+  const uploadProfileImage = async (file: File) => {
+    const validationError = validateAvatarFile(file);
+    if (validationError) {
+      error.value = validationError;
+      throw new Error(validationError);
+    }
+
+    isUploadingImage.value = true;
+    error.value = "";
+    try {
+      const formData = new FormData();
+      formData.append("file", file);
+
+      await api.post<UploadImageResponse>("/profile/me/upload-profile-image", formData, {
+        headers: { "Content-Type": "multipart/form-data" },
+      });
+
+      // бэкенд не возвращает обновлённый профиль — перезапрашиваем,
+      // чтобы подтянуть свежий image_url
+      await getProfile();
+    } catch (err: unknown) {
+      error.value = extractDetail(err) || "Ошибка при загрузке изображения";
+      throw err;
+    } finally {
+      isUploadingImage.value = false;
     }
   };
 
   return {
     profile,
     isLoading,
+    isUploadingImage,
     error,
     hasName,
     getProfile,
     updateProfile,
+    uploadProfileImage,
   };
 });
 
@@ -284,9 +335,7 @@ export const useHistoryStore = defineStore("history", () => {
       nextCursor.value = res.data.next_cursor;
       hasMore.value = res.data.has_more;
     } catch (err: unknown) {
-      const detail =
-        (err as { response?: { data?: { detail?: string } } }).response?.data?.detail;
-      error.value = detail || "Ошибка при загрузке истории";
+      error.value = extractDetail(err) || "Ошибка при загрузке истории";
     } finally {
       isLoading.value = false;
     }

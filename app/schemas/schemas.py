@@ -65,6 +65,10 @@ class UserProfile(BaseModel):
     user_id: int = Field(description='Кому принадлежит профиль')
     created_at: datetime = Field('Время создание профиля')
     model_config = ConfigDict(from_attributes=True)
+    image_id: str | None = Field(default=None, description='ID изображения профиля')
+    image_url: str | None = Field(default=None, description='URL изображения профиля')
+
+    model_config = ConfigDict(from_attributes=True)
 
 
 class UserUpdateProfile(BaseModel):

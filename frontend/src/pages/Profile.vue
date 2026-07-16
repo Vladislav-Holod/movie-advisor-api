@@ -12,6 +12,9 @@ const editData = ref({
   about_me: "",
 });
 
+const avatarInput = ref<HTMLInputElement | null>(null);
+const avatarError = ref("");
+
 onMounted(async () => {
   await profileStore.getProfile();
   await movieStore.getLikedMovies();
@@ -25,19 +28,49 @@ const startEdit = () => {
       about_me: profileStore.profile.about_me || "",
     };
   }
+  profileStore.error = "";
   isEditing.value = true;
 };
 
 const cancelEdit = () => {
+  profileStore.error = "";
   isEditing.value = false;
 };
 
+const clearError = () => {
+  if (profileStore.error) {
+    profileStore.error = "";
+  }
+};
+
 const saveEdit = async () => {
+  profileStore.error = "";
   try {
     await profileStore.updateProfile(editData.value);
     isEditing.value = false;
   } catch {
-    // ошибка отображается в profileStore.error
+    // ошибка отображается в profileStore.error, остаёмся в режиме редактирования
+  }
+};
+
+const triggerAvatarPicker = () => {
+  avatarError.value = "";
+  avatarInput.value?.click();
+};
+
+const onAvatarSelected = async (event: Event) => {
+  const target = event.target as HTMLInputElement;
+  const file = target.files?.[0];
+  if (!file) return;
+
+  avatarError.value = "";
+  try {
+    await profileStore.uploadProfileImage(file);
+  } catch {
+    avatarError.value = profileStore.error || "Не удалось загрузить фото";
+  } finally {
+    // сбрасываем input, чтобы можно было выбрать тот же файл повторно
+    target.value = "";
   }
 };
 </script>
@@ -51,85 +84,122 @@ const saveEdit = async () => {
         Загрузка профиля...
       </div>
 
-      <div v-else-if="profileStore.profile && !isEditing" class="profile-view">
-        <div v-if="!profileStore.hasName" class="name-warning">
-          ⚠️ Укажите имя в профиле — без него нельзя добавлять фильмы в избранное
+      <template v-else-if="profileStore.profile">
+        <div class="avatar-block">
+          <div class="avatar-wrapper" @click="triggerAvatarPicker">
+            <img
+              v-if="profileStore.profile.image_url"
+              :src="profileStore.profile.image_url"
+              alt="Аватар"
+              class="avatar-image"
+            />
+            <div v-else class="avatar-placeholder">
+              {{ (profileStore.profile.name || "?").charAt(0).toUpperCase() }}
+            </div>
+            <div v-if="profileStore.isUploadingImage" class="avatar-overlay">
+              Загрузка...
+            </div>
+            <div v-else class="avatar-overlay avatar-overlay-hover">
+              Изменить фото
+            </div>
+          </div>
+          <input
+            ref="avatarInput"
+            type="file"
+            accept="image/jpeg,image/png,image/webp"
+            class="avatar-input-hidden"
+            @change="onAvatarSelected"
+          />
+          <span v-if="avatarError" class="field-error">{{ avatarError }}</span>
         </div>
 
-        <div class="profile-field">
-          <label>Имя</label>
-          <p>{{ profileStore.profile.name || "Не указано" }}</p>
+        <div v-if="!isEditing" class="profile-view">
+          <div v-if="!profileStore.hasName" class="name-warning">
+            ⚠️ Укажите имя в профиле — без него нельзя добавлять фильмы в избранное
+          </div>
+
+          <div class="profile-field">
+            <label>Имя</label>
+            <p>{{ profileStore.profile.name || "Не указано" }}</p>
+          </div>
+
+          <div class="profile-field">
+            <label>Любимые жанры</label>
+            <p>{{ profileStore.profile.favorite_genres || "Не указаны" }}</p>
+          </div>
+
+          <div class="profile-field">
+            <label>О себе</label>
+            <p>{{ profileStore.profile.about_me || "Не указано" }}</p>
+          </div>
+
+          <div class="profile-field">
+            <label>Дата регистрации</label>
+            <p>{{ new Date(profileStore.profile.created_at).toLocaleDateString("ru-RU") }}</p>
+          </div>
+
+          <div class="stats-row">
+            <div class="stat-box">
+              <span class="stat-value">{{ movieStore.likedMovies.length }}</span>
+              <span class="stat-label">Фильмов в избранном</span>
+            </div>
+          </div>
+
+          <button @click="startEdit" class="btn-edit">Редактировать профиль</button>
         </div>
 
-        <div class="profile-field">
-          <label>Любимые жанры</label>
-          <p>{{ profileStore.profile.favorite_genres || "Не указаны" }}</p>
-        </div>
+        <div v-else class="profile-edit">
+          <div class="form-group">
+            <label for="name">Имя *</label>
+            <input
+              id="name"
+              v-model="editData.name"
+              type="text"
+              maxlength="80"
+              placeholder="Как к вам обращаться"
+              :class="{ 'input-error': profileStore.error.includes('занято') }"
+              @input="clearError"
+            />
+            <span class="field-hint">Обязательно для добавления фильмов в избранное</span>
+            <span v-if="profileStore.error.includes('занято')" class="field-error">
+              {{ profileStore.error }}
+            </span>
+          </div>
 
-        <div class="profile-field">
-          <label>О себе</label>
-          <p>{{ profileStore.profile.about_me || "Не указано" }}</p>
-        </div>
+          <div class="form-group">
+            <label for="genres">Любимые жанры</label>
+            <input
+              id="genres"
+              v-model="editData.favorite_genres"
+              type="text"
+              maxlength="200"
+              placeholder="Например: Sci-Fi, Триллер, Комедия"
+            />
+          </div>
 
-        <div class="profile-field">
-          <label>Дата регистрации</label>
-          <p>{{ new Date(profileStore.profile.created_at).toLocaleDateString("ru-RU") }}</p>
-        </div>
+          <div class="form-group">
+            <label for="about">О себе</label>
+            <textarea
+              id="about"
+              v-model="editData.about_me"
+              maxlength="300"
+              rows="4"
+              placeholder="Расскажите о своих кинопредпочтениях"
+            ></textarea>
+          </div>
 
-        <div class="stats-row">
-          <div class="stat-box">
-            <span class="stat-value">{{ movieStore.likedMovies.length }}</span>
-            <span class="stat-label">Фильмов в избранном</span>
+          <div v-if="profileStore.error && !profileStore.error.includes('занято')" class="error-message">
+            {{ profileStore.error }}
+          </div>
+
+          <div class="button-group">
+            <button @click="saveEdit" class="btn-save" :disabled="profileStore.isLoading">
+              {{ profileStore.isLoading ? "Сохранение..." : "Сохранить" }}
+            </button>
+            <button @click="cancelEdit" class="btn-cancel">Отменить</button>
           </div>
         </div>
-
-        <button @click="startEdit" class="btn-edit">Редактировать профиль</button>
-      </div>
-
-      <div v-else-if="isEditing" class="profile-edit">
-        <div class="form-group">
-          <label for="name">Имя *</label>
-          <input
-            id="name"
-            v-model="editData.name"
-            type="text"
-            maxlength="80"
-            placeholder="Как к вам обращаться"
-          />
-          <span class="field-hint">Обязательно для добавления фильмов в избранное</span>
-        </div>
-
-        <div class="form-group">
-          <label for="genres">Любимые жанры</label>
-          <input
-            id="genres"
-            v-model="editData.favorite_genres"
-            type="text"
-            maxlength="200"
-            placeholder="Например: Sci-Fi, Триллер, Комедия"
-          />
-        </div>
-
-        <div class="form-group">
-          <label for="about">О себе</label>
-          <textarea
-            id="about"
-            v-model="editData.about_me"
-            maxlength="300"
-            rows="4"
-            placeholder="Расскажите о своих кинопредпочтениях"
-          ></textarea>
-        </div>
-
-        <div v-if="profileStore.error" class="error-message">
-          {{ profileStore.error }}
-        </div>
-
-        <div class="button-group">
-          <button @click="saveEdit" class="btn-save">Сохранить</button>
-          <button @click="cancelEdit" class="btn-cancel">Отменить</button>
-        </div>
-      </div>
+      </template>
     </div>
   </div>
 </template>
@@ -160,6 +230,69 @@ const saveEdit = async () => {
   text-align: center;
   color: #a0aec0;
   padding: 3rem 2rem;
+}
+
+.avatar-block {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.5rem;
+  margin-bottom: 2rem;
+}
+
+.avatar-wrapper {
+  position: relative;
+  width: 120px;
+  height: 120px;
+  border-radius: 50%;
+  cursor: pointer;
+  overflow: hidden;
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.15);
+}
+
+.avatar-image {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  display: block;
+}
+
+.avatar-placeholder {
+  width: 100%;
+  height: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  color: white;
+  font-size: 2.5rem;
+  font-weight: 700;
+}
+
+.avatar-overlay {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  text-align: center;
+  font-size: 0.85rem;
+  font-weight: 600;
+  color: white;
+  background: rgba(0, 0, 0, 0.55);
+}
+
+.avatar-overlay-hover {
+  opacity: 0;
+  transition: opacity 0.2s;
+}
+
+.avatar-wrapper:hover .avatar-overlay-hover {
+  opacity: 1;
+}
+
+.avatar-input-hidden {
+  display: none;
 }
 
 .name-warning {
@@ -252,11 +385,23 @@ const saveEdit = async () => {
   border-color: #667eea;
 }
 
+.input-error {
+  border-color: #f56565 !important;
+}
+
 .field-hint {
   font-size: 0.8rem;
   color: #a0aec0;
   margin-top: 0.35rem;
   display: block;
+}
+
+.field-error {
+  font-size: 0.85rem;
+  color: #e53e3e;
+  margin-top: 0.35rem;
+  display: block;
+  font-weight: 600;
 }
 
 .error-message {
@@ -288,6 +433,11 @@ const saveEdit = async () => {
   background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
   color: white;
   flex: 1;
+}
+
+.btn-save:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
 }
 
 .btn-cancel {
