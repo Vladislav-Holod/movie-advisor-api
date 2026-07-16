@@ -19,7 +19,8 @@ class UserProfileModel(Base):
                                                  server_default=func.now(),
                                                  nullable=False,
                                                  )
-
+    image_id: Mapped[str | None] = mapped_column(String, default=None,unique=True)
+    
     user: Mapped["UserModel"] = relationship(
         "UserModel",
         back_populates="profile"

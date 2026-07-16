@@ -5,6 +5,7 @@ from loguru import logger
 from uuid import uuid4
 from contextlib import asynccontextmanager
 from app.config import settings
+from fastapi.staticfiles import StaticFiles
 
 from app.routes import router as api_router
 from app.database import async_engine
@@ -31,10 +32,15 @@ app = FastAPI(
     title='Cinema search service',
     version=settings.APP_VERSION,
     redirect_slashes=False,
-    lifespan = lifespan
+    lifespan = lifespan,
 )
 app.include_router(api_router)
 
+app.mount(
+    "/profile_images",
+    StaticFiles(directory="profile_images"),
+    name="profile_images"
+)
 # CORS конфигурация
 app.add_middleware(
     CORSMiddleware,
