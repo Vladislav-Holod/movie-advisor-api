@@ -1,8 +1,5 @@
-import os
 from pydantic_settings import BaseSettings, SettingsConfigDict
-from functools import lru_cache
 from loguru import logger
-
 
 class Settings(BaseSettings):
     AI_API_KEY: str
@@ -12,7 +9,7 @@ class Settings(BaseSettings):
     API_POISKINO_KEY: str
     APP_VERSION: str
     DATABASE_URL: str = "sqlite+aiosqlite:///./moviebase.db"
-
+    echo_database: str = True
     model_config = SettingsConfigDict(
         env_file=".env",
         env_file_encoding="utf-8"
@@ -20,8 +17,3 @@ class Settings(BaseSettings):
 
 
 settings = Settings()
-
-# @lru_cache()
-# def get_settings() -> Settings:
-# logger.info('Загрузка настроек...')
-# return Settings()

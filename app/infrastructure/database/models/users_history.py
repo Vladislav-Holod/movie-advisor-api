@@ -1,8 +1,8 @@
 from sqlalchemy import Boolean, Integer, String, Text, ForeignKey, DateTime, func,Enum
 from sqlalchemy.orm import Mapped, mapped_column, relationship
-from app.database import Base
+from app.infrastructure.database.session import Base
 from datetime import datetime
-from app.models.association_tables import history_movie
+from app.infrastructure.database.models.association_tables import history_movie
 import enum
 
 class TaskStatus(str, enum.Enum):

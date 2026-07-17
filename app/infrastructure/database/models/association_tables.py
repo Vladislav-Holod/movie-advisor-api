@@ -1,5 +1,5 @@
 from sqlalchemy import Table, Column, ForeignKey
-from app.database import Base
+from app.infrastructure.database.session import Base
 
 user_profile_liked_movie = Table(
     "user_profile_liked_movie",
