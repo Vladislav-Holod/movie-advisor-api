@@ -5,3 +5,5 @@ venv
 .venv/
 info.log
 moviebase.db
+migrations
+frontend/run-dev.bat
