@@ -4,12 +4,7 @@ from app.infrastructure.database.session import Base
 from datetime import datetime
 from app.infrastructure.database.models.association_tables import history_movie
 import enum
-
-class TaskStatus(str, enum.Enum):
-    PENDING = "pending"
-    RUNNING = "running"
-    SUCCESS = "success"
-    FAILED = "failed"
+from app.domain.entities.user_history import TaskStatus
 
 class UserHistoryPrompt(Base):
     __tablename__ = 'user_history'

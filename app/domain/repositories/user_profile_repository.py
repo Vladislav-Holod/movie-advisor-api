@@ -28,3 +28,6 @@ class AbstractUserProfileRepository(ABC):
 
     @abstractmethod
     async def unlike_movie(self, profile_id: int, movie_id: int) -> None: ...
+
+    @abstractmethod
+    async def create_empty(self, user_id: int) -> UserProfile: ...

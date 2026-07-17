@@ -12,3 +12,4 @@ class Movie:
     poster_image: str = ''
     movie_length: int | None = None
     rating: float = 0.0
+    reason: str | None = None

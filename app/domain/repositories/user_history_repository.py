@@ -1,7 +1,7 @@
 from abc import ABC, abstractmethod
 
 from app.domain.entities.user_history import UserHistory
-
+from app.domain.entities.user_history import TaskStatus
 
 class AbstractUserHistoryRepository(ABC):
     @abstractmethod
@@ -17,3 +17,9 @@ class AbstractUserHistoryRepository(ABC):
     async def list_for_user(
         self, user_id: int, cursor: int | None, limit: int
     ) -> tuple[list[UserHistory], bool]: ...
+
+    @abstractmethod
+    async def set_status(self, task_id: str, status: TaskStatus) -> None: ...
+
+    @abstractmethod
+    async def complete(self, task_id: str, response: str, movie_ids: list[int]) -> None: ...

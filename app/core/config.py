@@ -1,5 +1,5 @@
 from pydantic_settings import BaseSettings, SettingsConfigDict
-from loguru import logger
+
 
 class Settings(BaseSettings):
     AI_API_KEY: str
@@ -9,10 +9,14 @@ class Settings(BaseSettings):
     API_POISKINO_KEY: str
     APP_VERSION: str
     DATABASE_URL: str = "sqlite+aiosqlite:///./moviebase.db"
-    echo_database: str = True
+    DEBUG: bool = False
+
+    CELERY_BROKER_URL: str = "redis://127.0.0.1:6379/0"
+    CELERY_RESULT_BACKEND: str = "redis://127.0.0.1:6379/0"
+
     model_config = SettingsConfigDict(
         env_file=".env",
-        env_file_encoding="utf-8"
+        env_file_encoding="utf-8",
     )
 
 

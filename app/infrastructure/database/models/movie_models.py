@@ -1,9 +1,10 @@
 from sqlalchemy import Integer, String, JSON, Text, Float
 from sqlalchemy.orm import Mapped, mapped_column, relationship
-from app.database import Base
-from app.models.association_tables import user_profile_liked_movie
+from app.infrastructure.database.session import Base
+from app.infrastructure.database.models import association_tables
 from sqlalchemy import ForeignKey
-from .association_tables import history_movie
+from .association_tables import history_movie, user_profile_liked_movie
+
 
 class MovieModel(Base):
     __tablename__ = "movie_base"

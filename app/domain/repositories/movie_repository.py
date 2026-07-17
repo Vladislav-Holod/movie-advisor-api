@@ -15,3 +15,9 @@ class AbstractMovieRepository(ABC):
 
     @abstractmethod
     async def create(self, movie: Movie) -> Movie: ...
+
+    @abstractmethod
+    async def get_existing_pois_ids(self, pois_ids: list[int]) -> set[int]: ...
+
+    @abstractmethod
+    async def bulk_create(self, movies: list[Movie]) -> None: ...
